@@ -2,6 +2,7 @@ use super::{
     AudioCodec, BitrateMode, ExportSettings, ExrCompression, FieldOrder, FileDialog, FilmcraftApp, Format, FrameRate, GpuRendering, H264Profile,
     HardwareEncoding, Multiplexer, MxfVideoCodec, Placement, PresetManager, Rect, Reg, SampleFormat, Sense, TextOverlay, Tokens, apply_preset, pos2, vec2,
 };
+use crate::widgets::DragCheckbox as _;
 
 // ---------------------------------------------------------------------------------------------
 // middle: settings
@@ -107,7 +108,7 @@ pub(super) fn drag(ui: &mut egui::Ui, reg: &mut Reg, id: &str, v: &mut f64, opti
 }
 
 pub(super) fn check(ui: &mut egui::Ui, reg: &mut Reg, id: &str, v: &mut bool, label: &str) -> bool {
-    let r = ui.checkbox(v, label);
+    let r = ui.checkbox_drag(v, label);
     reg.add(id, r.rect, label);
     r.changed()
 }
