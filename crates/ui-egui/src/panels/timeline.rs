@@ -2392,6 +2392,8 @@ fn interact(app: &mut FilmcraftApp, ui: &mut egui::Ui, seq: &Sequence, layout: &
     }
 
     // ---- fade handles on the hovered and the selected clips, and the fade being dragged (#1385)
+    // with a selection modifier held, a press on a handle selects the clip as anywhere else on it
+    let selecting = mods.shift || mods.alt || mods.command;
     if tool == Tool::Selection {
         let painter = ui.painter().with_clip_rect(layout.content);
         let hot_text = app.tokens.hot_text;
@@ -2410,11 +2412,12 @@ fn interact(app: &mut FilmcraftApp, ui: &mut egui::Ui, seq: &Sequence, layout: &
                     let Some(track) = seq.track(row.track) else { continue };
                     for it in track.items.iter().filter(|i| over == Some(i.id) || app.session.state.selection.contains(&i.id)) {
                         for (c, _) in fade_handles(seq, layout, row, it) {
-                            ring(c, pos.is_some_and(|p| c.distance(p) <= FADE_HANDLE_R));
+                            ring(c, !selecting && pos.is_some_and(|p| c.distance(p) <= FADE_HANDLE_R));
                         }
                     }
                 }
                 if let Some(p) = pos
+                    && !selecting
                     && fade_handle_at(seq, layout, p).is_some()
                 {
                     ctx.set_cursor_icon(CursorIcon::ResizeColumn);
@@ -2435,7 +2438,13 @@ fn interact(app: &mut FilmcraftApp, ui: &mut egui::Ui, seq: &Sequence, layout: &
                     painter.rect_filled(Rect::from_min_max(pos2(a, top), pos2(b, bottom)), 0.0, Color32::from_black_alpha(70));
                     let (from, to) = if *edge == filmcraft_edit::Edge::In { (pos2(a, bottom), pos2(b, top)) } else { (pos2(a, top), pos2(b, bottom)) };
                     painter.line_segment([from, to], Stroke::new(1.5, Color32::WHITE));
-                    painter.text(pos2((a + b) / 2.0, top + 9.0), Align2::CENTER_CENTER, format!("{frames} f"), Tokens::ui(10.5), Color32::WHITE);
+                    painter.text(
+                        pos2((a + b) / 2.0, top + 9.0),
+                        Align2::CENTER_CENTER,
+                        format!("{frames}{}", tl!(" frames")),
+                        Tokens::ui(10.5),
+                        Color32::WHITE,
+                    );
                 }
                 ctx.set_cursor_icon(CursorIcon::ResizeColumn);
             }
@@ -2460,7 +2469,7 @@ fn interact(app: &mut FilmcraftApp, ui: &mut egui::Ui, seq: &Sequence, layout: &
             Grab::Volume { .. } if resp.clicked() && !adding => Grab::Other(pressed.grab.hit()),
             g => g,
         };
-        let fade = if tool == Tool::Selection { fade_handle_at(seq, layout, p) } else { None };
+        let fade = if tool == Tool::Selection && !selecting { fade_handle_at(seq, layout, p) } else { None };
         let started = match (tool, grab) {
             // a middle-button drag pans whatever the tool and whatever it starts on, as in the
             // monitors (#824) and DaVinci Resolve (#1490); only a primary press is kept in
