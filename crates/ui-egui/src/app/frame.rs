@@ -70,6 +70,8 @@ impl FilmcraftApp {
         panels::dialogs::show(self, &ctx);
         updates_ui::show(self, &ctx);
         if !self.ui.show_status_bar {
+            // no bar to draw the job in, but the progress window still shows
+            self.job_window(ui.ctx());
             return;
         }
         // Status / hint bar
