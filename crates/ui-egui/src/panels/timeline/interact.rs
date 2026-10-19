@@ -1222,5 +1222,20 @@ pub(super) fn interact(app: &mut FilmcraftApp, ui: &mut egui::Ui, seq: &Sequence
 
     drop_targets(app, ui, seq, layout);
 
+    // the tool's own pointer stays on through the drag it started (a trim, slip, slide, stretch,
+    // remix or pan); a blocked edit keeps the system's NotAllowed
+    if let Some(d) = &app.tl.drag
+        && let Some(p) = pos
+        && tool_draws_pointer(tool)
+        && match d {
+            Drag::Pan { .. } => tool == Tool::Hand,
+            Drag::Scrub { .. } | Drag::Volume(_) | Drag::Marquee { .. } | Drag::Divider | Drag::ZoomBar { .. } => false,
+            _ => true,
+        }
+        && ctx.output(|o| o.cursor_icon) != CursorIcon::NotAllowed
+    {
+        ctx.set_cursor_icon(CursorIcon::None);
+        paint_tool_pointer(&ctx, tool, p);
+    }
     app.auto.add("timeline.tracks", layout.content, "tracks");
 }
