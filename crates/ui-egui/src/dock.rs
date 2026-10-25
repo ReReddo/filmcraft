@@ -568,7 +568,7 @@ fn keep_far_panels(
 ) {
     let DockNode::Split { vertical: own, size, a, b } = node else { return };
     let old_extent = if vertical { rect.height() } else { rect.width() };
-    if !new_extent.is_finite() || (new_extent - old_extent).abs() < 0.5 {
+    if !new_extent.is_finite() || (new_extent - old_extent).abs() < 1e-3 {
         return;
     }
     let axis = if *own { SplitAxis::Vertical } else { SplitAxis::Horizontal };
@@ -1045,6 +1045,10 @@ mod tests {
         layout.iter().map(|(p, r)| (*p, r.width().round())).collect()
     }
 
+    fn widths_exact(layout: &[(PanelKind, Rect)]) -> Vec<(PanelKind, f32)> {
+        layout.iter().map(|(p, r)| (*p, r.width())).collect()
+    }
+
     #[test]
     fn a_divider_changes_only_the_two_panels_beside_it() {
         use PanelKind::*;
@@ -1056,6 +1060,21 @@ mod tests {
         assert_eq!(a[0].1, b[0].1 + 100.0, "Source takes what the divider moved: {b:?} → {a:?}");
         assert_eq!(a[2].1, b[2].1, "Properties is not beside the divider and keeps its width: {b:?} → {a:?}");
         assert_eq!(a[1].1, b[1].1 - 100.0, "Program gives it up");
+    }
+
+    #[test]
+    fn many_small_steps_of_a_slow_drag_do_not_move_the_panels_beyond_the_divider() {
+        use PanelKind::*;
+        let mut root = hsplit(SplitSize::Ratio(0.5), tabs(&[Source], 0), hsplit(SplitSize::Ratio(0.5), tabs(&[Program], 0), tabs(&[Properties], 0)));
+        let rect = Rect::from_min_size(egui::Pos2::ZERO, vec2(1004.0, 400.0));
+        let (start, _) = drag(&mut root, rect, &[], 0.0);
+        let mut end = start.clone();
+        for _ in 0..200 {
+            (_, end) = drag(&mut root, rect, &[], 0.3);
+        }
+        let (s, e) = (widths_exact(&start), widths_exact(&end));
+        assert!((e[0].1 - (s[0].1 + 60.0)).abs() < 0.1, "Source takes what the divider moved: {s:?} → {e:?}");
+        assert!((e[2].1 - s[2].1).abs() < 0.1, "Properties keeps its width over the whole drag: {s:?} → {e:?}");
     }
 
     #[test]
