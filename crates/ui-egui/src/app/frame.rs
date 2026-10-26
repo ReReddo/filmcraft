@@ -88,14 +88,16 @@ impl FilmcraftApp {
                 ui.ctx().request_repaint_after(std::time::Duration::from_secs(1));
             }
         }
+        let resp = ui.interact(sb, egui::Id::unique("status-bar"), egui::Sense::click());
+        if resp.clicked() {
+            self.ui.status.clear();
+        }
+        // an error that just expired or was clicked away is not drawn as one this frame
+        let is_error = is_error && self.ui.status_is_error();
         let hint = if !self.ui.status.is_empty() { self.ui.status.clone() } else { self.hint_text() };
         let mut text_x = sb.min.x + 10.0;
         if is_error {
             ui.painter().rect_filled(sb, 0.0, t.danger.gamma_multiply(0.14));
-        }
-        let resp = ui.interact(sb, egui::Id::unique("status-bar"), egui::Sense::click());
-        if resp.clicked() {
-            self.ui.status.clear();
         }
         // the job indicator is drawn first: the text ends before it
         let room_end = self.job_status(ui, sb, &t) - 12.0;
