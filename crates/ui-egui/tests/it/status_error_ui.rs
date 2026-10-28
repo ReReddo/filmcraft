@@ -129,3 +129,27 @@ fn a_long_error_stops_before_the_job_indicator() {
     let (error, bar) = (rect(&h, "status.error"), rect(&h, "status.job.progress"));
     assert!(error[0] + error[2] <= bar[0], "the error ends at {}, the indicator begins at {}", error[0] + error[2], bar[0]);
 }
+
+/// A note cut short by the job indicator shows whole in a tooltip too, as an error does.
+#[test]
+fn a_long_note_shows_whole_in_a_tooltip() {
+    use std::sync::atomic::Ordering;
+
+    use egui_kittest::kittest::Queryable;
+    use filmcraft_engine::Job;
+    let mut h = app();
+    let job = Job { id: 900, label: "Exporting".into(), progress: Default::default(), result: Default::default() };
+    job.progress.total.store(1000, Ordering::Relaxed);
+    job.progress.done.store(250, Ordering::Relaxed);
+    h.state_mut().session.jobs.push(job);
+    h.state_mut().ui.status = "Exporting ".to_string() + &"a-long-folder-name/".repeat(40) + "last-file.mp4";
+    h.step();
+    h.step();
+    assert!(!has(&h, "status.error"), "a note is not an error");
+    assert!(h.query_by_label_contains("last-file.mp4").is_none(), "the tail is cut off the bar");
+    h.input_mut().events.push(egui::Event::PointerMoved(egui::pos2(100.0, 890.0)));
+    for _ in 0..8 {
+        h.step();
+    }
+    assert!(h.query_by_label_contains("last-file.mp4").is_some(), "hovering the note shows all of it");
+}

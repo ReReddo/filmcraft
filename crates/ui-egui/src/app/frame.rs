@@ -113,10 +113,10 @@ impl FilmcraftApp {
         let galley = ui.painter().layout_job(job);
         let (shown, elided) = (egui::Rect::from_min_size(egui::pos2(text_x, sb.center().y - galley.size().y / 2.0), galley.size()), galley.elided);
         ui.painter().galley(shown.min, galley, color);
+        // a message cut short by the job indicator shows whole in a tooltip
+        let over = ui.interact(shown, egui::Id::unique("status-text"), egui::Sense::hover());
+        let over = if elided { over.on_hover_text(&hint) } else { over };
         if is_error {
-            // a message cut short by the job indicator shows whole in a tooltip
-            let over = ui.interact(shown, egui::Id::unique("status-error"), egui::Sense::hover());
-            let over = if elided { over.on_hover_text(&hint) } else { over };
             self.auto.add_response("status.error", &over, &hint);
         }
         if !self.ui.status_is_error() {
